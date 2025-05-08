@@ -1,0 +1,79 @@
+Starting setup_container_iptables_rules.sh
+
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+KUBE-FIREWALL  all  --  anywhere             anywhere            
+DBLET_FILTER_INPUT  all  --  anywhere             anywhere            
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:7073
+ACCEPT     all  --  anywhere             anywhere             ctstate RELATED,ESTABLISHED
+KUBE-FIREWALL  all  --  anywhere             anywhere            
+DBLET_FILTER_OUTPUT  all  --  anywhere             anywhere            
+ACCEPT     all  --  anywhere             anywhere             owner UID match root
+ACCEPT     udp  --  anywhere             anywhere             ! owner UID match root udp dpt:domain
+ACCEPT     tcp  --  anywhere             anywhere             ! owner UID match root tcp dpt:domain
+REJECT     all  --  anywhere             169.254.169.254      ! owner UID match root reject-with icmp-port-unreachable
+REJECT     all  --  anywhere             168.63.129.16        ! owner UID match root reject-with icmp-port-unreachable
+ACCEPT     all  --  anywhere             anywhere             ctstate RELATED,ESTABLISHED
+ACCEPT     tcp  --  anywhere             anywhere             ! owner UID match root tcp dpt:https
+ACCEPT     tcp  --  anywhere             anywhere             ! owner UID match root tcp dpt:http
+ACCEPT     tcp  --  anywhere             anywhere             ! owner UID match root tcp dpt:http
+ACCEPT     udp  --  anywhere             anywhere             ! owner UID match root udp dpt:80
+ACCEPT     icmp --  anywhere             anywhere             ! owner UID match root icmp destination-unreachable
+REJECT     all  --  anywhere             10.96.0.0/14         ! owner UID match root reject-with icmp-port-unreachable
+REJECT     all  --  anywhere             localhost            ! owner UID match root reject-with icmp-port-unreachable
+
+Chain DBLET_FILTER_INPUT (1 references)
+target     prot opt source               destination         
+ACCEPT     tcp  --  192.168.210.0/24     anywhere             tcp dpt:19090
+ACCEPT     tcp  --  10.107.128.0/18      anywhere             tcp dpt:19093
+DROP       tcp  --  anywhere             anywhere             tcp dpt:19093
+DROP       tcp  --  anywhere             anywhere             tcp dpt:8181
+DROP       tcp  --  anywhere             anywhere             tcp dpt:19090
+DROP       tcp  --  anywhere             anywhere             tcp dpt:10255
+
+Chain DBLET_FILTER_OUTPUT (1 references)
+target     prot opt source               destination         
+DROP       tcp  --  anywhere             anywhere             tcp dpt:8182
+DROP       tcp  --  anywhere             anywhere             tcp dpt:10255 ! owner GID match 2000
+
+Chain EG-FORWARD (0 references)
+target     prot opt source               destination         
+
+Chain EG-INPUT (0 references)
+target     prot opt source               destination         
+
+Chain EG-OUTPUT (0 references)
+target     prot opt source               destination         
+
+Chain KUBE-FIREWALL (2 references)
+target     prot opt source               destination         
+DROP       all  --  anywhere             anywhere             /* kubernetes firewall for dropping marked packets */ mark match 0x8000/0x8000
+DROP       all  -- !127.0.0.0/8          127.0.0.0/8          /* block incoming localnet connections */ ! ctstate RELATED,ESTABLISHED,DNAT
+
+Chain KUBE-KUBELET-CANARY (0 references)
+target     prot opt source               destination         
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+KUBE-FIREWALL  all      anywhere             anywhere            
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+KUBE-FIREWALL  all      anywhere             anywhere            
+ACCEPT     all      anywhere             anywhere             ctstate RELATED,ESTABLISHED
+REJECT     all      anywhere             anywhere             ! owner UID match root reject-with icmp6-port-unreachable
+
+Chain KUBE-FIREWALL (2 references)
+target     prot opt source               destination         
+DROP       all      anywhere             anywhere             /* kubernetes firewall for dropping marked packets */ mark match 0x8000/0x8000
+
+Chain KUBE-KUBELET-CANARY (0 references)
+target     prot opt source               destination         
